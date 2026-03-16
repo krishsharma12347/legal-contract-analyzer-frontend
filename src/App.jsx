@@ -4,12 +4,8 @@ import "./App.css";
 
 function App() {
   const [file, setFile] = useState(null);
-  const [analysis, setAnalysis] = useState(null);
+  const [analysis, setAnalysis] = useState(null); // ✅ store full JSON response
   const [contracts, setContracts] = useState([]);
-
-  // ✅ Environment variables
-  const FASTAPI_URL = import.meta.env.VITE_FASTAPI_URL;
-  const EXPRESS_URL = import.meta.env.VITE_EXPRESS_URL;
 
   // Upload PDF -> FastAPI -> Save to backend
   const handleUpload = async () => {
@@ -18,19 +14,21 @@ function App() {
     formData.append("file", file);
 
     try {
-      // Step 1: Send to FastAPI
-      const response = await axios.post(`${FASTAPI_URL}/process-pdf`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      // ✅ Step 1: Send to FastAPI
+      const response = await axios.post(
+        `${import.meta.env.VITE_FASTAPI_URL}/process-pdf`,
+        formData,
+        { headers: { "Content-Type": "multipart/form-data" } }
+      );
       setAnalysis(response.data);
 
-      // Step 2: Save to backend (Express + MongoDB)
-      await axios.post(`${EXPRESS_URL}/contracts`, {
+      // ✅ Step 2: Save to backend (Express + MongoDB)
+      await axios.post(`${import.meta.env.VITE_EXPRESS_URL}/contracts`, {
         filename: file.name,
         analysis: response.data,
       });
 
-      // Step 3: Refresh contracts list
+      // ✅ Step 3: Refresh contracts list
       fetchContracts();
     } catch (error) {
       console.error("Upload error:", error);
@@ -41,10 +39,19 @@ function App() {
   // Fetch contracts from backend
   const fetchContracts = async () => {
     try {
-      const res = await axios.get(`${EXPRESS_URL}/contracts`);
-      setContracts(res.data);
+      const res = await axios.get(`${import.meta.env.VITE_EXPRESS_URL}/contracts`);
+      console.log("Contracts response:", res.data);
+
+      // ✅ Ensure contracts is always an array
+      if (Array.isArray(res.data)) {
+        setContracts(res.data);
+      } else {
+        console.error("Unexpected contracts response:", res.data);
+        setContracts([]); // fallback to empty array
+      }
     } catch (err) {
       console.error("Error fetching contracts:", err);
+      setContracts([]); // prevent crash
     }
   };
 
@@ -97,26 +104,31 @@ function App() {
                 ) : (
                   <>
                     <p className="text-gray-700 font-semibold">
-                      Risk Level: {analysis.risk_level}
+                      Risk Level: {analysis?.risk_level || "Unknown"}
                     </p>
                     <p className="text-gray-700">
-                      Missing Clauses: {analysis.missing_clauses.join(", ")}
+                      Missing Clauses:{" "}
+                      {analysis?.missing_clauses?.length > 0
+                        ? analysis.missing_clauses.join(", ")
+                        : "None"}
                     </p>
 
                     <h4 className="text-lg font-bold mt-4">Detected Categories:</h4>
                     <ul className="list-disc list-inside text-gray-700">
-                      {Object.entries(analysis.categories).map(([category, items]) => (
-                        <li key={category}>
-                          <strong>{category}</strong>
-                          <ul className="ml-6 list-disc text-sm">
-                            {items.map((item, idx) => (
-                              <li key={idx}>
-                                {item.text} (confidence: {item.confidence})
-                              </li>
-                            ))}
-                          </ul>
-                        </li>
-                      ))}
+                      {analysis?.categories
+                        ? Object.entries(analysis.categories).map(([category, items]) => (
+                            <li key={category}>
+                              <strong>{category}</strong>
+                              <ul className="ml-6 list-disc text-sm">
+                                {items.map((item, idx) => (
+                                  <li key={idx}>
+                                    {item.text} (confidence: {item.confidence})
+                                  </li>
+                                ))}
+                              </ul>
+                            </li>
+                          ))
+                        : <li>No categories detected</li>}
                     </ul>
                   </>
                 )}
