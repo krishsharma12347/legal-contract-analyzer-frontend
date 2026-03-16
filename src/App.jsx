@@ -4,8 +4,12 @@ import "./App.css";
 
 function App() {
   const [file, setFile] = useState(null);
-  const [analysis, setAnalysis] = useState(null); // ✅ store full JSON response
+  const [analysis, setAnalysis] = useState(null);
   const [contracts, setContracts] = useState([]);
+
+  // ✅ Environment variables
+  const FASTAPI_URL = import.meta.env.VITE_FASTAPI_URL;
+  const EXPRESS_URL = import.meta.env.VITE_EXPRESS_URL;
 
   // Upload PDF -> FastAPI -> Save to backend
   const handleUpload = async () => {
@@ -15,15 +19,15 @@ function App() {
 
     try {
       // Step 1: Send to FastAPI
-      const response = await axios.post("http://localhost:8000/process-pdf", formData, {
+      const response = await axios.post(`${FASTAPI_URL}/process-pdf`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-      setAnalysis(response.data); // ✅ store full JSON
+      setAnalysis(response.data);
 
       // Step 2: Save to backend (Express + MongoDB)
-      await axios.post("http://localhost:5000/contracts", {
+      await axios.post(`${EXPRESS_URL}/contracts`, {
         filename: file.name,
-        analysis: response.data, // ✅ save full JSON
+        analysis: response.data,
       });
 
       // Step 3: Refresh contracts list
@@ -37,7 +41,7 @@ function App() {
   // Fetch contracts from backend
   const fetchContracts = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/contracts");
+      const res = await axios.get(`${EXPRESS_URL}/contracts`);
       setContracts(res.data);
     } catch (err) {
       console.error("Error fetching contracts:", err);
@@ -62,7 +66,9 @@ function App() {
         <section className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white py-20">
           <div className="container mx-auto px-6 text-center">
             <h2 className="text-4xl font-bold mb-4">Upload Your Legal Contract</h2>
-            <p className="mb-8 text-lg">AI-powered analysis of your PDF contracts, right here on the page.</p>
+            <p className="mb-8 text-lg">
+              AI-powered analysis of your PDF contracts, right here on the page.
+            </p>
 
             <div className="bg-white text-gray-800 rounded-lg shadow-lg p-6 max-w-lg mx-auto">
               <input
