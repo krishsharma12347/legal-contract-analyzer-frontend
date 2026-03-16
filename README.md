@@ -1,1 +1,0 @@
-# legal-contract-analyzer-frontend
