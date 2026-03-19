@@ -5,27 +5,31 @@ import "./App.css";
 function App() {
   const [file, setFile] = useState(null);
   const [analysis, setAnalysis] = useState(null);
+  const [loading, setLoading] = useState(false); // ✅ loading state
 
-  // ✅ Backend URL from Netlify env variable
   const backendUrl = import.meta.env.VITE_API_URL;
 
-  // Upload PDF -> FastAPI
   const handleUpload = async () => {
     if (!file) return;
     const formData = new FormData();
     formData.append("file", file);
 
     try {
-      // ✅ Call FastAPI /analyze
+      setLoading(true); // ✅ start loading
+      setAnalysis(null); // clear old result
+
       const response = await axios.post(
         `${backendUrl}/analyze`,
         formData,
         { headers: { "Content-Type": "multipart/form-data" } }
       );
+
       setAnalysis(response.data);
     } catch (error) {
       console.error("Upload error:", error);
       setAnalysis({ error: "❌ Error processing PDF" });
+    } finally {
+      setLoading(false); // ✅ stop loading
     }
   };
 
@@ -54,14 +58,21 @@ function App() {
               <button
                 onClick={handleUpload}
                 className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 w-full"
+                disabled={loading} // ✅ disable button while loading
               >
-                Upload & Analyze
+                {loading ? "Analyzing..." : "Upload & Analyze"}
               </button>
             </div>
           </div>
         </section>
 
         <section className="container mx-auto px-6 py-12">
+          {loading && (
+            <div className="bg-white rounded-lg shadow-md p-6 mb-8 text-center">
+              <p className="text-blue-600 font-semibold">⏳ Processing your contract...</p>
+            </div>
+          )}
+
           {analysis && (
             <div className="bg-white rounded-lg shadow-md p-6 mb-8">
               <h3 className="text-2xl font-bold mb-4">AI Risk Report</h3>
