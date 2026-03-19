@@ -19,7 +19,7 @@ function App() {
       setAnalysis(null); // clear old result
 
       const response = await axios.post(
-        `${backendUrl}/analyze`,
+        `${backendUrl}/process-pdf`,
         formData,
         { headers: { "Content-Type": "multipart/form-data" } }
       );
